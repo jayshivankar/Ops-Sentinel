@@ -1,0 +1,191 @@
+version: '3.8'
+
+# =============================================================================
+# Ops Sentinel — Demo Stack  (all images already pulled locally)
+# 9 services across 4 tiers — realistic environment for monitoring tests
+# Usage: docker compose -f stack.compose.yml up -d
+# =============================================================================
+
+services:
+
+  # ── Web / API Tier ────────────────────────────────────────────────────────
+
+  ops-sentinel-api:
+    image: nginx:alpine
+    container_name: ops-sentinel-api
+    ports:
+      - "8080:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    labels:
+      stack: "ops-sentinel"
+      role: "api-gateway"
+      tier: "web"
+
+  ops-sentinel-gateway:
+    image: nginx:alpine
+    container_name: ops-sentinel-gateway
+    ports:
+      - "8082:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      stack: "ops-sentinel"
+      role: "load-balancer"
+      tier: "web"
+
+  # ── Application / Worker Tier ─────────────────────────────────────────────
+
+  ops-sentinel-worker:
+    image: python:3.11-alpine
+    container_name: ops-sentinel-worker
+    command: >
+      sh -c "
+      while true; do
+        echo '[INFO] Processing job #'$$RANDOM' from queue';
+        sleep 2;
+        echo '[DEBUG] Cache hit ratio: '$$((RANDOM % 100))'%';
+        sleep 1;
+        echo '[WARN] High memory usage detected: '$$((RANDOM % 40 + 60))'%';
+        sleep 3;
+        if [ $$((RANDOM % 8)) -eq 0 ]; then
+          echo '[ERROR] DB connection pool exhausted — retrying in 5s';
+        fi;
+        sleep 2;
+      done
+      "
+    restart: unless-stopped
+    labels:
+      stack: "ops-sentinel"
+      role: "background-worker"
+      tier: "app"
+
+  ops-sentinel-scheduler:
+    image: python:3.11-alpine
+    container_name: ops-sentinel-scheduler
+    command: >
+      sh -c "
+      while true; do
+        echo '[INFO] Scheduler tick — scanning job queue';
+        sleep 4;
+        echo '[INFO] Dispatched '$$((RANDOM % 10 + 1))' tasks to workers';
+        sleep 4;
+        echo '[DEBUG] Next run in '$$((RANDOM % 30 + 5))'s';
+        sleep 4;
+        if [ $$((RANDOM % 6)) -eq 0 ]; then
+          echo '[ERROR] Failed to acquire distributed lock — another instance running?';
+        fi;
+        sleep 3;
+      done
+      "
+    restart: unless-stopped
+    labels:
+      stack: "ops-sentinel"
+      role: "task-scheduler"
+      tier: "app"
+
+  ops-sentinel-mailer:
+    image: python:3.11-alpine
+    container_name: ops-sentinel-mailer
+    command: >
+      sh -c "
+      while true; do
+        echo '[INFO] Email queue check — '$$((RANDOM % 5))' pending';
+        sleep 5;
+        echo '[INFO] Sent notification to user@example.com';
+        sleep 5;
+        if [ $$((RANDOM % 7)) -eq 0 ]; then
+          echo '[WARN] SMTP connection slow — '$$((RANDOM % 500 + 200))'ms latency';
+        fi;
+        sleep 5;
+      done
+      "
+    restart: unless-stopped
+    labels:
+      stack: "ops-sentinel"
+      role: "mailer-service"
+      tier: "app"
+
+  # ── Data Tier ─────────────────────────────────────────────────────────────
+
+  ops-sentinel-cache:
+    image: redis:alpine
+    container_name: ops-sentinel-cache
+    ports:
+      - "6379:6379"
+    command: redis-server --loglevel verbose --maxmemory 64mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      stack: "ops-sentinel"
+      role: "cache"
+      tier: "data"
+
+  ops-sentinel-db:
+    image: postgres:16
+    container_name: ops-sentinel-db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: sentinel_db
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel_pass
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+    labels:
+      stack: "ops-sentinel"
+      role: "primary-database"
+      tier: "data"
+
+  # ── Observability Tier ────────────────────────────────────────────────────
+
+  ops-sentinel-log-collector:
+    image: grafana/loki:latest
+    container_name: ops-sentinel-log-collector
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+    labels:
+      stack: "ops-sentinel"
+      role: "log-aggregator"
+      tier: "observability"
+
+  ops-sentinel-audit:
+    image: python:3.11-alpine
+    container_name: ops-sentinel-audit
+    command: >
+      sh -c "
+      while true; do
+        echo '[AUDIT] User admin logged in from 192.168.1.'$$((RANDOM % 254 + 1));
+        sleep 6;
+        echo '[AUDIT] Config change: threshold updated by ops-team';
+        sleep 6;
+        if [ $$((RANDOM % 5)) -eq 0 ]; then
+          echo '[AUDIT][WARN] Failed login attempt from 10.0.0.'$$((RANDOM % 254 + 1));
+        fi;
+        sleep 6;
+      done
+      "
+    restart: unless-stopped
+    labels:
+      stack: "ops-sentinel"
+      role: "audit-logger"
+      tier: "observability"

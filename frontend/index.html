@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Ops Sentinel — AI-powered DevOps monitoring command center with Temporal workflow orchestration">
+    <title>Ops Sentinel — Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Animated background grid -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow--1"></div>
+    <div class="bg-glow bg-glow--2"></div>
+
+    <div class="app">
+        <!-- Top nav bar -->
+        <header class="topbar" id="topbar">
+            <div class="topbar__brand">
+                <div class="topbar__logo">
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                        <circle cx="14" cy="14" r="12" stroke="url(#logo-grad)" stroke-width="2.5"/>
+                        <path d="M9 14h10M14 9v10" stroke="url(#logo-grad)" stroke-width="2" stroke-linecap="round"/>
+                        <defs>
+                            <linearGradient id="logo-grad" x1="0" y1="0" x2="28" y2="28">
+                                <stop stop-color="#00F0FF"/>
+                                <stop offset="1" stop-color="#A855F7"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h1 class="topbar__title">Ops Sentinel</h1>
+                <span class="topbar__badge">v2.0</span>
+            </div>
+            <div class="topbar__status">
+                <div class="status-pill" id="status-temporal">
+                    <span class="status-dot"></span>
+                    <span class="status-label">Temporal</span>
+                </div>
+                <div class="status-pill" id="status-docker">
+                    <span class="status-dot"></span>
+                    <span class="status-label">Docker</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main layout -->
+        <main class="main">
+            <!-- Sidebar: Service inventory -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar__header">
+                    <h2 class="sidebar__title">Services</h2>
+                    <button class="btn-icon" id="btn-refresh-services" title="Refresh services">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M13.65 2.35A7.958 7.958 0 008 0C3.58 0 .01 3.58.01 8S3.58 16 8 16c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 018 14 6 6 0 1114 8h-3l4 4 4-4h-3z" fill="currentColor" transform="scale(0.85) translate(1,1)"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="sidebar__list" id="service-list">
+                    <div class="sidebar__empty">
+                        <p>Loading services…</p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Chat panel -->
+            <section class="chat" id="chat-panel">
+                <div class="chat__messages" id="chat-messages">
+                    <!-- Welcome message -->
+                    <div class="msg msg--system msg--fadein">
+                        <div class="msg__avatar msg__avatar--system">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M7 10h6M10 7v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <div class="msg__body">
+                            <div class="msg__name">Ops Sentinel</div>
+                            <div class="msg__text">
+                                Welcome to the <strong>Ops Sentinel Command Center</strong>. I can help you manage your Docker services using natural language.<br><br>
+                                Try commands like:
+                                <ul class="msg__hints">
+                                    <li><button class="hint-btn" data-hint="show running containers">show running containers</button></li>
+                                    <li><button class="hint-btn" data-hint="inspect health for all services">inspect health for all services</button></li>
+                                    <li><button class="hint-btn" data-hint="fetch logs from ops-sentinel-worker">fetch logs from ops-sentinel-worker</button></li>
+                                    <li><button class="hint-btn" data-hint="restart ops-sentinel-cache and check health">restart ops-sentinel-cache and check health</button></li>
+                                </ul>
+                            </div>
+                            <div class="msg__time"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input area -->
+                <div class="chat__input-area">
+                    <div class="chat__input-wrap">
+                        <input
+                            type="text"
+                            id="chat-input"
+                            class="chat__input"
+                            placeholder="Describe what you need…"
+                            autocomplete="off"
+                        />
+                        <button class="chat__send" id="btn-send" title="Execute (Enter)">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M3 10h14M12 5l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="chat__footnote">Powered by Temporal workflows &amp; OpenAI</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

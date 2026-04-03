@@ -1,0 +1,90 @@
+# =============================================================================
+# Ops Sentinel — Production Docker Compose
+# =============================================================================
+# This is the file you distribute to users. They only need:
+#   1. Docker + Docker Compose installed
+#   2. An OpenAI API key
+#
+# Usage:
+#   export OPENAI_API_KEY="sk-..."
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Then open http://localhost:8000 in a browser.
+# =============================================================================
+
+services:
+
+  # ── Temporal Server (workflow orchestration engine) ───────────────────────
+  temporal-db:
+    image: postgres:16-alpine
+    container_name: ops-sentinel-temporal-db
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    volumes:
+      - temporal-db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  temporal:
+    image: temporalio/auto-setup:1.24.2
+    container_name: ops-sentinel-temporal
+    depends_on:
+      - temporal-db
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=temporal-db
+    ports:
+      - "7233:7233"
+    restart: unless-stopped
+
+  # ── Ops Sentinel API (web dashboard + REST API) ──────────────────────────
+  ops-sentinel-api:
+    build: .
+    image: ops-sentinel:latest
+    container_name: ops-sentinel-api
+    depends_on:
+      - temporal
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - TEMPORAL_HOST=temporal:7233
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL_ID=${OPENAI_MODEL_ID:-gpt-4o-mini}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      - API_SECRET_KEY=${API_SECRET_KEY:-}
+      - API_WORKERS=${API_WORKERS:-2}
+    volumes:
+      # Mount the host's Docker socket so Ops Sentinel can see host containers
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ── Ops Sentinel Worker (Temporal activity executor) ─────────────────────
+  ops-sentinel-worker:
+    build: .
+    image: ops-sentinel:latest
+    container_name: ops-sentinel-worker
+    depends_on:
+      - temporal
+    command: ["python", "-m", "ops_sentinel.console", "worker"]
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL_ID=${OPENAI_MODEL_ID:-gpt-4o-mini}
+    volumes:
+      # Worker also needs Docker socket access for container operations
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+
+volumes:
+  temporal-db-data:
