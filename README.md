@@ -146,4 +146,9 @@ python -m pytest ops_sentinel/test_ops_sentinel.py -v
 
 ---
 
+LIVE DEMO :
+
+
+https://github.com/user-attachments/assets/dabbcd38-303d-48b4-b438-94d3761faf18
+
 
