@@ -4,7 +4,7 @@
 
 Manage your Docker containers using natural language — inspect services, check health, view logs, and restart containers through an interactive web dashboard.
 
-![Dashboard](https://img.shields.io/badge/dashboard-live-brightgreen) ![Docker](https://img.shields.io/badge/docker-ready-blue) ![License](https://img.shields.io/badge/license-MIT-yellow)
+![Dashboard](https://img.shields.io/badge/dashboard-live-brightgreen) ![Docker](https://img.shields.io/badge/docker-ready-blue) 
 
 ---
 
@@ -142,6 +142,3 @@ python -m pytest ops_sentinel/test_ops_sentinel.py -v
 
 ---
 
-## License
-
-MIT
